@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5 pt-3">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title mb-0">Edit Attendance Record</h2>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <p class="mb-1"><strong>Employee:</strong> {{ employee_name }} (ID: {{ record.employee_ref.employee_id }})</p>
+                        <p><strong>Date:</strong> {{ record.date.strftime('%Y-%m-%d') }} (IST)</p>
+                    </div>
+                    <hr style="border-color: rgba(255,255,255,0.2);">
+
+                    <form method="POST" action="{{ url_for('edit_attendance', att_id=record.id) }}">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="time_in" class="form-label">Time In (IST - HH:MM or HH:MM:SS)</label>
+                                <input type="time" class="form-control" id="time_in" name="time_in"
+                                       value="{{ convert_utc_to_ist(record.timestamp_in).strftime('%H:%M:%S') if record.timestamp_in else '' }}" step="1">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="time_out" class="form-label">Time Out (IST - HH:MM or HH:MM:SS)</label>
+                                <input type="time" class="form-control" id="time_out" name="time_out"
+                                       value="{{ convert_utc_to_ist(record.timestamp_out).strftime('%H:%M:%S') if record.timestamp_out else '' }}" step="1">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="status" class="form-label">Status</label>
+                                <select class="form-select text-dark" id="status" name="status"> {# Added text-dark class #}
+                                    <option value="Clocked In" {% if record.status == 'Clocked In' %}selected{% endif %}>Clocked In</option>
+                                    <option value="Clocked Out" {% if record.status == 'Clocked Out' %}selected{% endif %}>Clocked Out</option>
+                                    <option value="Present" {% if record.status == 'Present' %}selected{% endif %}>Present (Manual)</option>
+                                    <option value="Absent" {% if record.status == 'Absent' %}selected{% endif %}>Absent</option>
+                                    <option value="Late" {% if record.status == 'Late' %}selected{% endif %}>Late</option>
+                                    <option value="On Leave" {% if record.status == 'On Leave' %}selected{% endif %}>On Leave</option>
+                                    <option value="Half Day" {% if record.status == 'Half Day' %}selected{% endif %}>Half Day</option>
+                                    {# Add other statuses as needed #}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary me-2">Save Changes</button>
+                            <a href="{{ url_for('view_attendance', attendance_date=record.date.strftime('%Y-%m-%d')) }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,430 @@
+/* theme.css */
+
+/* --- Variable Definitions --- */
+:root {
+    --primary-blue: #007bff; /* A vibrant blue */
+    --primary-blue-dark: #0056b3;
+    --primary-blue-light: #6ea8ff; /* Lighter blue for gradients/hovers */
+    --primary-blue-glass: rgba(0, 123, 255, 0.1); /* Blue tint for glass */
+
+    --secondary-white: #ffffff;
+    --secondary-white-glass: rgba(255, 255, 255, 0.2); /* Main glass background - slightly more opaque */
+    --secondary-white-glass-light: rgba(255, 255, 255, 0.3); /* Lighter glass for hover/active */
+    --secondary-white-border: rgba(255, 255, 255, 0.35); /* Border for glass elements - slightly more opaque */
+
+    --text-color-light: #f8f9fa; /* For text on dark backgrounds or primary blue backgrounds */
+    --text-color-dark: #212529; /* For general dark text if needed */
+    --text-color-on-glass-elements: #1a2533; /* Darker blue/gray for text on light glass */
+    --text-color-muted-on-glass: #495f7a; /* Muted text on glass */
+    --text-color-placeholder-on-glass: #5c7088;
+
+
+    --body-bg-gradient: linear-gradient(135deg, var(--primary-blue-light) 0%, var(--primary-blue) 100%);
+
+    --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+    --card-hover-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.3);
+
+    --border-radius-main: 0.75rem;
+    --border-radius-small: 0.375rem;
+
+    --transition-speed: 0.3s;
+}
+
+/* --- General Body Styling --- */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--body-bg-gradient);
+    background-attachment: fixed;
+    color: var(--text-color-light); /* Default text color for page (outside cards) */
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding-top: 70px; /* Adjust if navbar height changes */
+}
+
+main.container {
+    flex-grow: 1;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+/* --- Navbar Styling --- */
+.navbar {
+    background: var(--secondary-white-glass);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--secondary-white-border);
+    box-shadow: var(--card-shadow);
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1030;
+    transition: background var(--transition-speed) ease;
+}
+
+.navbar-brand {
+    font-weight: bold;
+    color: var(--secondary-white) !important;
+    transition: transform var(--transition-speed) ease;
+}
+.navbar-brand:hover {
+    transform: scale(1.05);
+}
+
+.nav-link {
+    color: var(--text-color-light) !important;
+    font-weight: 500;
+    margin: 0 0.5rem;
+    padding: 0.5rem 1rem !important;
+    border-radius: var(--border-radius-small);
+    transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease, transform var(--transition-speed) ease;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    background-color: var(--primary-blue-glass);
+    color: var(--secondary-white) !important;
+    transform: translateY(-2px);
+}
+
+.navbar-toggler {
+    border-color: var(--secondary-white-border);
+}
+.navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.8%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+
+/* --- Card Styling (Glassmorphism) --- */
+.card {
+    background: var(--secondary-white-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--secondary-white-border);
+    border-radius: var(--border-radius-main);
+    box-shadow: var(--card-shadow);
+    color: var(--text-color-on-glass-elements); /* UPDATED: Default text color for card content */
+    transition: transform var(--transition-speed) ease-in-out, box-shadow var(--transition-speed) ease-in-out, background var(--transition-speed) ease;
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: var(--card-hover-shadow);
+    background: var(--secondary-white-glass-light);
+}
+
+.card-header {
+    background: var(--primary-blue-glass);
+    border-bottom: 1px solid var(--secondary-white-border);
+    color: var(--text-color-light); /* Header text can remain light on this blue-tinted bg */
+    font-weight: 500;
+    padding: 0.75rem 1.25rem;
+    border-top-left-radius: var(--border-radius-main);
+    border-top-right-radius: var(--border-radius-main);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.card-title {
+    color: var(--text-color-on-glass-elements); /* UPDATED: Card titles to be darker */
+    font-weight: 600;
+}
+/* If card-header h2 is used, it will inherit from .card-header color (light) */
+.card-header .card-title { /* Specifically for titles within themed headers */
+    color: var(--text-color-light);
+}
+
+
+.card-text {
+    /* Will inherit from .card color (darker) */
+    opacity: 0.9;
+}
+
+.card-footer {
+    background: rgba(0, 0, 0, 0.1);
+    border-top: 1px solid var(--secondary-white-border);
+    color: var(--text-color-muted-on-glass); /* UPDATED: Muted text in footer */
+    padding: 0.75rem 1.25rem;
+    border-bottom-left-radius: var(--border-radius-main);
+    border-bottom-right-radius: var(--border-radius-main);
+}
+.card-footer a {
+    color: var(--primary-blue); /* Link color in footer */
+    text-decoration: none;
+    transition: color var(--transition-speed) ease;
+}
+.card-footer a:hover {
+    color: var(--primary-blue-dark);
+}
+
+/* --- Button Styling --- */
+.btn {
+    border-radius: var(--border-radius-small);
+    padding: 0.6rem 1.2rem;
+    font-weight: 500;
+    transition: all var(--transition-speed) ease-in-out;
+    border: 1px solid transparent;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+.btn:active {
+    transform: translateY(0px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.btn-primary {
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
+    color: var(--secondary-white);
+}
+.btn-primary:hover {
+    background-color: var(--primary-blue-dark);
+    border-color: var(--primary-blue-dark);
+    color: var(--secondary-white);
+}
+
+.btn-secondary {
+    background-color: var(--secondary-white-glass-light);
+    border-color: var(--secondary-white-border);
+    color: var(--text-color-on-glass-elements); /* UPDATED: Text on secondary button */
+}
+.btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.45); /* Lighter hover */
+    border-color: rgba(255, 255, 255, 0.5);
+    color: var(--text-color-on-glass-elements);
+}
+/* Other button styles (success, danger, info, outline) remain the same, assuming their text color is already appropriate */
+
+
+/* --- Form Elements Styling --- */
+.form-label {
+    color: var(--text-color-on-glass-elements); /* UPDATED: Form labels to be darker */
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+.form-control, .form-select {
+    background-color: var(--secondary-white-glass);
+    border: 1px solid var(--secondary-white-border);
+    color: var(--text-color-on-glass-elements); /* UPDATED: Text inside form controls */
+    border-radius: var(--border-radius-small);
+    padding: 0.5rem 1rem;
+    transition: background-color var(--transition-speed) ease, border-color var(--transition-speed) ease;
+}
+.form-control::placeholder {
+    color: var(--text-color-placeholder-on-glass); /* UPDATED: Placeholder text color */
+    opacity: 1; /* Ensure placeholder is not too faint */
+}
+.form-control:focus, .form-select:focus {
+    background-color: var(--secondary-white-glass-light);
+    border-color: var(--primary-blue); /* Focus with primary blue */
+    box-shadow: 0 0 0 0.2rem var(--primary-blue-glass);
+    color: var(--text-color-on-glass-elements);
+}
+textarea.form-control {
+    min-height: 100px;
+}
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(20%) sepia(10%) saturate(500%) hue-rotate(180deg) brightness(90%) contrast(90%); /* Darker indicator */
+    opacity: 0.7;
+    cursor: pointer;
+}
+.form-text { /* For helper text below form inputs */
+    color: var(--text-color-muted-on-glass); /* UPDATED: Muted helper text */
+}
+
+
+/* --- Table Styling --- */
+.table {
+    background-color: var(--secondary-white-glass);
+    color: var(--text-color-on-glass-elements); /* UPDATED: Table text color */
+    border-radius: var(--border-radius-main);
+    overflow: hidden;
+    border: 1px solid var(--secondary-white-border);
+    margin-bottom: 1rem;
+}
+.table th, .table td {
+    border-color: var(--secondary-white-border);
+    padding: 0.9rem;
+    vertical-align: middle;
+}
+.table thead th {
+    background-color: var(--primary-blue-glass);
+    color: var(--text-color-light); /* Header text on blue bg can be light */
+    border-bottom-width: 2px;
+    font-weight: 600;
+}
+.table-hover tbody tr:hover {
+    background-color: var(--secondary-white-glass-light) !important;
+    color: var(--text-color-on-glass-elements) !important;
+}
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 123, 255, 0.05); /* Very subtle blue striping for odd rows */
+}
+.table-striped tbody tr:nth-of-type(even) {
+    background-color: transparent; /* Or a slightly different transparent shade if needed */
+}
+
+
+/* --- Alert Styling --- */
+.alert {
+    background-color: var(--secondary-white-glass);
+    border: 1px solid var(--secondary-white-border);
+    color: var(--text-color-on-glass-elements); /* UPDATED: Default alert text */
+    border-radius: var(--border-radius-main);
+    padding: 1rem 1.25rem;
+}
+/* Specific alert types might need text color adjustments if their background tint is dark */
+.alert-primary {
+    background-color: rgba(0, 123, 255, 0.2);
+    border-color: rgba(0, 123, 255, 0.4);
+    color: #cfe2ff; /* Light blue text for primary alert */
+}
+.alert-secondary {
+    background-color: rgba(108, 117, 125, 0.2);
+    border-color: rgba(108, 117, 125, 0.4);
+    color: #e2e3e5; /* Light gray text */
+}
+.alert-success {
+    background-color: rgba(40, 167, 69, 0.2);
+    border-color: rgba(40, 167, 69, 0.4);
+    color: #d1e7dd; /* Light green text */
+}
+.alert-danger {
+    background-color: rgba(220, 53, 69, 0.2);
+    border-color: rgba(220, 53, 69, 0.4);
+    color: #f8d7da; /* Light red text */
+}
+.alert-warning {
+    background-color: rgba(255, 193, 7, 0.25); /* Slightly more opaque warning */
+    border-color: rgba(255, 193, 7, 0.4);
+    color: #533f03; /* Darker yellow/brown text for warning */
+}
+.alert-info {
+    background-color: rgba(23, 162, 184, 0.2);
+    border-color: rgba(23, 162, 184, 0.4);
+    color: #cff4fc; /* Light cyan text */
+}
+.alert-light {
+    background-color: rgba(248, 249, 250, 0.3); /* More opaque for light alert */
+    border-color: rgba(248, 249, 250, 0.5);
+    color: #343a40; /* Dark text for light alert */
+}
+.alert-dark {
+    background-color: rgba(52, 58, 64, 0.3);
+    border-color: rgba(52, 58, 64, 0.5);
+    color: #d6d8db; /* Light text for dark alert */
+}
+
+
+/* --- Footer Styling --- */
+.footer {
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    color: var(--text-color-light); /* Footer text can remain light */
+    opacity: 0.9;
+    padding: 1.5rem 0;
+    margin-top: auto;
+    border-top: 1px solid var(--secondary-white-border);
+    text-align: center;
+}
+.footer p {
+    margin-bottom: 0;
+}
+
+/* --- Utility & Animation Classes --- */
+.text-primary-blue {
+    color: var(--primary-blue-light) !important;
+}
+
+.fade-in {
+    animation: fadeInAnimation ease var(--transition-speed);
+    animation-iteration-count: 1;
+    animation-fill-mode: forwards;
+}
+@keyframes fadeInAnimation {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+#videoFeedContainer, #videoFeedContainerTrain {
+    background: var(--secondary-white-glass);
+    border: 1px solid var(--secondary-white-border);
+    box-shadow: var(--card-shadow);
+    border-radius: var(--border-radius-main);
+    padding: 10px;
+}
+
+#videoElement, #videoElementTrain {
+    border-radius: calc(var(--border-radius-main) - 10px);
+}
+
+.modal-content {
+    background: rgba(255, 255, 255, 0.3); /* Slightly more opaque modal background */
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: var(--border-radius-main);
+    color: var(--text-color-on-glass-elements); /* Darker text in modals */
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
+.modal-header {
+    background: var(--primary-blue-glass);
+    border-bottom: 1px solid var(--secondary-white-border);
+    color: var(--text-color-light); /* Light text on blue header */
+    border-top-left-radius: var(--border-radius-main);
+    border-top-right-radius: var(--border-radius-main);
+}
+.modal-header .btn-close {
+    filter: invert(1) brightness(100%) sepia(100%) saturate(0%) hue-rotate(0deg);
+    opacity: 0.8;
+}
+.modal-header .btn-close:hover {
+    opacity: 1;
+}
+.modal-body {
+    padding: 1.5rem;
+}
+.modal-footer {
+    background: rgba(0,0,0,0.1);
+    border-top: 1px solid var(--secondary-white-border);
+    border-bottom-left-radius: var(--border-radius-main);
+    border-bottom-right-radius: var(--border-radius-main);
+}
+
+.flashes .alert {
+    margin-bottom: 1.5rem;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+::-webkit-scrollbar-track {
+    background: var(--primary-blue-glass);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+    background: var(--primary-blue-light);
+    border-radius: 10px;
+    border: 2px solid var(--primary-blue-glass);
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-blue);
+}
+

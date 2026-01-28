@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block head_extra %}
+{# Removed inline styles as they are now in theme.css or adapted #}
+{# Link to a specific dashboard CSS if needed for very unique styles not in theme.css #}
+{# <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard_specific.css') }}"> #}
+<style>
+    /* Minimal specific styles for dashboard if absolutely necessary */
+    .quick-actions .list-group-item {
+        background-color: rgba(255, 255, 255, 0.08); /* Slightly different glass for list items - a bit more opaque */
+        border: none;
+        border-bottom: 1px solid var(--secondary-white-border);
+        color: var(--text-color-light);
+        padding-top: 0.9rem;
+        padding-bottom: 0.9rem;
+        transition: background-color var(--transition-speed) ease, transform var(--transition-speed) ease;
+    }
+    .quick-actions .list-group-item:last-child {
+        border-bottom: none;
+    }
+    .quick-actions .list-group-item:hover {
+        background-color: var(--primary-blue-glass);
+        transform: translateX(5px);
+    }
+    .quick-actions .list-group-item svg {
+        transition: transform 0.2s ease;
+        color: var(--text-color-light);
+    }
+    .quick-actions .list-group-item:hover svg {
+        transform: scale(1.1);
+    }
+    .icon-circle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 0.85rem;
+        background-color: rgba(255, 255, 255, 0.15);
+        transition: background-color var(--transition-speed) ease, transform var(--transition-speed) ease;
+    }
+    .quick-actions .list-group-item:hover .icon-circle {
+        background-color: rgba(0, 123, 255, 0.2);
+        transform: rotate(10deg);
+    }
+    .card-icon { /* Ensure this is styled if used outside theme.css general card */
+        font-size: 2.8rem;
+        opacity: 0.9; /* Made icons slightly more opaque */
+        color: var(--secondary-white);
+    }
+    .display-4, .display-6 { /* Ensure dashboard titles are bright */
+        color: var(--secondary-white);
+        font-weight: 500;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    }
+    .lead {
+        color: var(--text-color-light);
+        opacity: 0.9;
+    }
+
+    /* ---- Base Styles for Dashboard Cards (Contrast) ---- */
+    /* This will override theme.css .card specifically for the admin_dashboard.html page */
+    .dashboard-summary-card .card { /* Add a common class for dashboard summary cards */
+        backdrop-filter: blur(16px); /* Enhanced blur */
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.4); /* Brighter border for more definition */
+        box-shadow: 0 10px 35px rgba(30, 40, 80, 0.25); /* Slightly enhanced shadow for pop */
+        /* Transitions and other properties inherited from theme.css .card will still apply unless overridden here */
+    }
+
+    .dashboard-summary-card .card:hover {
+        transform: translateY(-8px) scale(1.02); /* Adjusted hover animation */
+        box-shadow: 0 14px 45px rgba(30, 40, 80, 0.3); /* Enhanced hover shadow */
+    }
+    
+    .dashboard-summary-card .card .card-header { /* Targets headers of cards on this page */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+        font-weight: 600; /* Make header text a bit bolder */
+    }
+
+    /* Ensure text within these specifically styled dashboard cards remains highly readable */
+    .dashboard-summary-card .card .card-title,
+    .dashboard-summary-card .card .card-text,
+    .dashboard-summary-card .card .fs-2 { /* Targeting the large number text */
+        color: var(--secondary-white) !important; /* Explicitly set to white for these cards */
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.25); /* Slightly stronger text shadow for readability on vibrant backgrounds */
+    }
+
+    .dashboard-summary-card .card .card-footer span { /* Text in card footer */
+         color: var(--secondary-white);
+         opacity: 0.9;
+    }
+    .dashboard-summary-card .card .card-footer svg { /* Icon in card footer */
+        color: var(--secondary-white);
+        opacity: 0.9;
+    }
+    .dashboard-summary-card .card .card-footer:hover span,
+    .dashboard-summary-card .card .card-footer:hover svg {
+        color: var(--primary-blue-light); /* Highlight color on hover */
+        opacity: 1;
+    }
+    /* ---- End of Base Styles for Dashboard Cards ---- */
+
+    /* ---- Individual Card Colors - Red, Green, Orange Tints ---- */
+    /* Card 1: Total Employees - Red Tint */
+    #total-employees-card .card {
+        background: rgba(255, 200, 200, 0.35); /* Light red/pinkish glass */
+    }
+    #total-employees-card .card:hover {
+        background: rgba(255, 200, 200, 0.45);
+    }
+    #total-employees-card .card .card-header {
+        background: rgba(220, 150, 150, 0.35); /* Darker red/pinkish tint for header */
+    }
+
+    /* Card 2: Present Today - Green Tint */
+    #present-today-card .card {
+        background: rgba(200, 255, 200, 0.35); /* Light green glass */
+    }
+    #present-today-card .card:hover {
+        background: rgba(200, 255, 200, 0.45);
+    }
+    #present-today-card .card .card-header {
+        background: rgba(150, 220, 150, 0.35); /* Darker green tint for header */
+    }
+
+    /* Card 3: Quick Actions - Orange Tint */
+    #quick-actions-card .card { /* This targets the main card for Quick Actions */
+        background: rgba(242, 179, 108, 0.35); /* Light orange/peach glass */
+    }
+    #quick-actions-card .card:hover {
+        background: rgba(255, 220, 180, 0.45);
+    }
+    #quick-actions-card .card .card-header {
+        background: rgba(67, 2, 118, 0.562); /* Darker orange/peach for header */
+    }
+    /* Quick Actions list items will still use their own specific background from above */
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4"> {# Use container-fluid for wider content on dashboard #}
+    <div class="row mb-4 align-items-center">
+        <div class="col">
+            <h1 class="display-4">Admin Dashboard</h1>
+            <p class="lead mb-0">Welcome, {{ current_user.username }}!</p>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row gy-4">
+        <!-- Total Employees Card -->
+        <div class="col-lg-4 col-md-6 dashboard-summary-card" id="total-employees-card">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1">Total Employees</h5>
+                            <p class="fs-2 fw-bold mb-0">{{ total_employees }}</p>
+                        </div>
+                        <div class="card-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-people-fill" viewBox="0 0 16 16">
+                                <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                                <path fill-rule="evenodd" d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <a href="{{ url_for('manage_employees') }}" class="card-footer text-decoration-none d-flex justify-content-between align-items-center py-3">
+                    <span>Manage Employees</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-circle-fill" viewBox="0 0 16 16">
+                        <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zM4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H4.5z"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <!-- Attendance Today Card -->
+        <div class="col-lg-4 col-md-6 dashboard-summary-card" id="present-today-card">
+            <div class="card h-100">
+                <div class="card-body">
+                     <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1">Present Today</h5>
+                            <p class="fs-2 fw-bold mb-0">{{ today_attendance_count }}</p>
+                        </div>
+                        <div class="card-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-calendar-check-fill" viewBox="0 0 16 16">
+                                <path d="M4 .5a.5.5 0 0 0-1 0V1H2a2 2 0 0 0-2 2v1h16V3a2 2 0 0 0-2-2h-1V.5a.5.5 0 0 0-1 0V1H4V.5zM16 14V5H0v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2zm-5.146-5.146-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708.708z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <a href="{{ url_for('view_attendance') }}" class="card-footer text-decoration-none d-flex justify-content-between align-items-center py-3">
+                    <span>View Attendance</span>
+                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-circle-fill" viewBox="0 0 16 16">
+                        <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zM4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H4.5z"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <!-- Quick Actions Card -->
+        <div class="col-lg-4 col-md-12 dashboard-summary-card" id="quick-actions-card">
+            <div class="card h-100 quick-actions">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('add_employee') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <span class="icon-circle">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-person-plus-fill" viewBox="0 0 16 16">
+                                <path d="M1 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                                <path fill-rule="evenodd" d="M13.5 5a.5.5 0 0 1 .5.5V7h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V8h-1.5a.5.5 0 0 1 0-1H13V5.5a.5.5 0 0 1 .5-.5z"/>
+                            </svg>
+                        </span>
+                        Add New Employee
+                    </a>
+                    <a href="{{ url_for('manage_employees') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                         <span class="icon-circle">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
+                                <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                                <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
+                            </svg>
+                        </span>
+                        Manage Employees
+                    </a>
+                    <a href="{{ url_for('view_attendance') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <span class="icon-circle">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-calendar-event" viewBox="0 0 16 16">
+                                <path d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1z"/>
+                                <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/>
+                            </svg>
+                        </span>
+                        Review Attendance
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Charts and Insights sections are removed as per your previous request -->
+    <!-- If you need charts, they would also need to be styled for the glassmorphism theme -->
+</div>
+{% endblock %}

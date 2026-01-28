@@ -1,0 +1,507 @@
+{% extends "base.html" %}
+
+{% block head_extra %}
+<style>
+    body.index-page-background {
+        /* Changed to a blue gradient background */
+        background: linear-gradient(to bottom right, #C33764 , #1D2671); /* Example blue gradient */
+        position: relative;
+        z-index: 0;
+    }
+
+    body.index-page-background::before {
+        content: '';
+        position: fixed; 
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: inherit; 
+        filter: blur(8px) brightness(0.95); /* Slightly darken the blurred background to help foreground pop */
+        -webkit-filter: blur(8px) brightness(0.55);
+        z-index: -1; 
+    }
+
+    #videoElement {
+        display: block;
+        width: 100%;
+        height: auto;
+        transform: scaleX(-1); 
+        border-radius: calc(var(--border-radius-main) - 10px); 
+    }
+    #overlayCanvas {
+        position: absolute;
+        top: 10px; 
+        left: 10px; 
+        width: calc(100% - 20px); 
+        height: calc(100% - 20px); 
+        transform: scaleX(-1); 
+        pointer-events: none; 
+    }
+    .controls-card {
+        margin-top: 1.5rem;
+    }
+    .page-title-card {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        text-align: center;
+        padding-bottom: 0;
+    }
+    .page-title-card h2 {
+        color: var(--secondary-white);
+        font-weight: 600;
+        text-shadow: 1px 1px 4px rgba(0,0,0,0.4); /* Enhanced shadow for title */
+    }
+    .page-title-card p {
+        color: var(--text-color-light);
+        opacity: 0.95; /* Slightly more opaque */
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.3); /* Enhanced shadow for subtitle */
+    }
+    /* IST Clock Style */
+    .page-title-card #istTimeDisplay {
+        color: var(--text-color-light);
+        font-size: 0.95rem;
+        font-weight: 500;
+        opacity: 0.9;
+        margin-top: 5px; /* Space between subtitle and clock */
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.25);
+    }
+
+
+    /* Styles for Pop-up Alert Container */
+    #popupAlertContainer {
+        position: absolute; 
+        top: 150px; /* Adjusted from 50 to 50px for clarity */
+        left: 15px; /* Position to the right with some padding */
+        z-index: 2050;
+        width: auto;
+        max-width: 90%; /* Max width relative to viewport */
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end; 
+        padding-top: 10px; 
+    }
+
+    .popup-alert {
+        min-width: 250px; 
+        max-width: 350px; 
+        text-align: left; 
+        margin-bottom: 10px; /* Add some space between alerts */
+        animation: fadeInSlideDown 0.5s ease-out forwards; /* Apply animation */
+        opacity: 0; /* Start transparent for animation */
+        transform: translateY(-20px); /* Start slightly above for animation */
+    }
+    .popup-alert.fade-out { /* Class to trigger fade-out */
+        animation: fadeOutSlideUp 0.5s ease-in forwards;
+    }
+
+
+    /* Default Glow - Brighter and more spread out */
+    .popup-alert {
+        box-shadow: 0 0 20px 6px rgba(220, 235, 255, 0.6), 
+                    0 5px 10px rgba(0,0,0,0.2); 
+    }
+
+    /* Specific Glows based on alert type - Enhanced */
+    .popup-alert.alert-success {
+        border-color: rgba(238, 245, 41, 0.767); 
+        box-shadow: 0 0 20px 6px rgba(200, 191, 70, 0.7), 
+                    0 5px 10px rgba(0,0,0,0.2);
+    }
+    .popup-alert.alert-danger {
+        border-color: rgba(220, 53, 69, 0.6);
+        box-shadow: 0 0 20px 6px rgba(255, 80, 100, 0.7), 
+                    0 5px 10px rgba(0,0,0,0.2);
+    }
+    .popup-alert.alert-info {
+        border-color: rgb(255, 218, 97);
+        box-shadow: 0 0 20px 6px rgba(208, 210, 60, 0.7), 
+                    0 5px 10px rgba(0,0,0,0.2);
+    }
+    .popup-alert.alert-warning {
+        border-color: rgba(255, 193, 7, 0.6);
+        box-shadow: 0 0 20px 6px rgba(255, 200, 50, 0.7), 
+                    0 5px 10px rgba(0,0,0,0.2);
+    }
+    .popup-alert.alert-secondary { 
+        border-color: rgba(108, 117, 125, 0.6);
+        box-shadow: 0 0 20px 6px rgba(130, 140, 150, 0.5), 
+                    0 5px 10px rgba(0,0,0,0.2);
+    }
+
+
+    @keyframes fadeInSlideDown {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeOutSlideUp {
+        from {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+    }
+
+</style>
+{% endblock %}
+
+{% block body_attributes %}class="index-page-background"{% endblock %}
+
+{% block content %}
+<div id="popupAlertContainer"></div> {# Container for pop-up alerts #}
+
+<div class="container mt-1 pt-1"> 
+    <div class="row justify-content-center">
+        <div class="col-lg-7 col-md-9">
+
+            <div class="card page-title-card mb-4">
+                <div class="card-body pb-0">
+                    <h2>Mark Your Attendance</h2>
+                    <p>Please look directly into the camera.</p>
+                    <!-- IST Clock Placeholder -->
+                    <p id="istTimeDisplay" class="mb-0">Loading IST time...</p> 
+                </div>
+            </div>
+
+            <div id="videoFeedContainer" class="mb-3" style="position: relative;"> <!-- Added position: relative for alert positioning -->
+                <video id="videoElement" autoplay playsinline muted></video>
+                <canvas id="overlayCanvas"></canvas>
+            </div>
+
+            <div class="card controls-card">
+                <div class="card-body text-center">
+                    <button id="markAttendanceBtn" class="btn btn-primary btn-lg me-2" disabled>Mark My Attendance</button>
+                    <button id="stopCameraBtn" class="btn btn-secondary btn-lg" style="display: none;">Stop Camera</button>
+                    <!-- Removed the old statusMessage div as popups are used now -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<canvas id="snapshotCanvas" style="display:none;"></canvas>
+
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const video = document.getElementById('videoElement');
+    const overlayCanvas = document.getElementById('overlayCanvas');
+    const overlayCtx = overlayCanvas.getContext('2d');
+    const snapshotCanvas = document.getElementById('snapshotCanvas');
+    const markAttendanceBtn = document.getElementById('markAttendanceBtn');
+    const stopCameraBtn = document.getElementById('stopCameraBtn');
+    const popupAlertContainer = document.getElementById('popupAlertContainer');
+    const istTimeDisplay = document.getElementById('istTimeDisplay'); // Get the clock display element
+    let stream;
+    let preferredDeviceId = null; 
+    let clockIntervalId = null; // To store the interval ID for the clock
+
+    // --- IST Clock Function ---
+    function updateISTClock() {
+        // Create a new Date object. It will be in the user's local timezone.
+        // We will format it to appear as IST.
+        // For true server-synced IST, you'd typically pass the server's current IST time
+        // and then increment it client-side, or periodically re-sync.
+        // However, the Python backend already provides `now` which is IST.
+        // This JS clock will show the client's interpretation of current time, formatted for IST.
+        // For a more accurate IST display reflecting the server's understanding,
+        // you might pass `{{ now.timestamp() }}` and initialize the JS Date with that.
+        // For simplicity here, we'll use client time and format it.
+
+        const now = new Date();
+        const options = {
+            timeZone: 'Asia/Kolkata', // Specify IST
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true // Use AM/PM
+        };
+        // This will format the date according to IST locale conventions
+        const timeString = now.toLocaleTimeString('en-IN', options);
+        if (istTimeDisplay) {
+            istTimeDisplay.textContent = `Current Time: ${timeString}`;
+        }
+    }
+
+    // --- Pop-up Alert Function ---
+    function updateStatus(message, type = 'info', duration = 3500) { // Default duration 3.5s
+        const alertDiv = document.createElement('div');
+        const alertType = ['success', 'danger', 'warning', 'info', 'secondary', 'primary', 'light', 'dark'].includes(type) ? type : 'info';
+        alertDiv.className = `alert alert-${alertType} popup-alert`; 
+        alertDiv.textContent = message;
+        
+        popupAlertContainer.appendChild(alertDiv);
+
+        // Automatically remove the alert
+        setTimeout(() => { 
+            alertDiv.classList.add('fade-out'); // Add class to trigger fade-out
+            setTimeout(() => {
+                if (alertDiv.parentNode === popupAlertContainer) { 
+                    popupAlertContainer.removeChild(alertDiv);
+                }
+            }, 500); // Duration of fadeOutSlideUp animation
+        }, duration - 500); // Start fade-out 0.5s before total duration
+    }
+
+    async function findPreferredCamera() {
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+            if (videoDevices.length === 0) {
+                updateStatus('No video input devices found.', 'danger');
+                return null;
+            }
+            // More specific keywords for internal cameras, less likely to match external ones.
+            const internalCameraKeywords = ['integrated webcam', 'built-in camera', 'laptop camera', 'internal camera', 'facing front', 'usb2.0 hd uvc webcam'];
+            // Keywords for known external camera brands or types
+            const externalCameraKeywords = ['logitech', 'droidcam', 'obs virtual camera', 'external', 'usb video device'];
+
+            let externalCameras = videoDevices.filter(device => {
+                const labelLower = device.label.toLowerCase();
+                // Prioritize devices that explicitly mention external or known external brands
+                if (externalCameraKeywords.some(keyword => labelLower.includes(keyword))) {
+                    return true;
+                }
+                // Exclude devices that seem internal if no strong external keyword match
+                return !internalCameraKeywords.some(keyword => labelLower.includes(keyword));
+            });
+            
+            // If no clear external, try to pick one that isn't obviously internal
+            if (externalCameras.length === 0) {
+                 externalCameras = videoDevices.filter(device => {
+                    const labelLower = device.label.toLowerCase();
+                    return !internalCameraKeywords.some(keyword => labelLower.includes(keyword));
+                });
+            }
+
+
+            if (externalCameras.length > 0) {
+                console.log('Preferred (External/Non-Internal) camera(s) found:', externalCameras.map(d => d.label));
+                preferredDeviceId = externalCameras[0].deviceId; // Pick the first likely external
+                return preferredDeviceId;
+            } else if (videoDevices.length > 0) {
+                // Fallback to the first available video device if no clear external one is found
+                console.log('No distinct external camera found, using first available camera:', videoDevices[0].label);
+                preferredDeviceId = videoDevices[0].deviceId;
+                return preferredDeviceId;
+            }
+            return null; // Should not be reached if videoDevices.length > 0
+        } catch (err) {
+            console.error("Error enumerating devices: ", err);
+            updateStatus('Error accessing camera list. ' + err.message, 'danger');
+            return null;
+        }
+    }
+
+    async function startCamera() {
+        markAttendanceBtn.disabled = true;
+        stopCameraBtn.style.display = 'none';
+        updateStatus('Initializing camera...', 'info', 2000); 
+
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+
+        if (!preferredDeviceId) { // Only find preferred if not already set or if retrying
+            preferredDeviceId = await findPreferredCamera();
+        }
+        
+        const constraints = {
+            video: {
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+                // More robust: prefer higher frame rates if available
+                frameRate: { ideal: 30, min: 15 } 
+            },
+            audio: false
+        };
+
+        if (preferredDeviceId) {
+            constraints.video.deviceId = { exact: preferredDeviceId };
+        }
+        // If no preferredDeviceId, it will use system default.
+
+        try {
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            video.srcObject = stream;
+            video.onloadedmetadata = async () => {
+                // Ensure video dimensions are set before setting canvas dimensions
+                await video.play(); // Start playing the video to ensure dimensions are final
+
+                overlayCanvas.width = video.videoWidth;
+                overlayCanvas.height = video.videoHeight;
+                snapshotCanvas.width = video.videoWidth;
+                snapshotCanvas.height = video.videoHeight;
+
+                markAttendanceBtn.disabled = false;
+                stopCameraBtn.style.display = 'inline-block';
+                
+                const currentTrack = stream.getVideoTracks()[0];
+                const settings = currentTrack.getSettings();
+                let cameraLabel = "Unknown Camera";
+
+                // Try to get a more descriptive label
+                if (settings.deviceId) {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const actualDevice = devices.find(d => d.deviceId === settings.deviceId);
+                    cameraLabel = actualDevice && actualDevice.label ? actualDevice.label : (settings.label || "Selected Camera");
+                } else if (currentTrack.label) {
+                    cameraLabel = currentTrack.label;
+                }
+                
+                updateStatus(`Camera started (${cameraLabel}). Position your face.`, 'info');
+                console.log("Using camera:", cameraLabel, "ID:", settings.deviceId || "N/A", "Actual Res:", video.videoWidth + "x" + video.videoHeight);
+            };
+            video.onplay = () => { // Fallback for dimensions if onloadedmetadata is tricky
+                 if (overlayCanvas.width !== video.videoWidth || overlayCanvas.height !== video.videoHeight) {
+                    overlayCanvas.width = video.videoWidth;
+                    overlayCanvas.height = video.videoHeight;
+                    snapshotCanvas.width = video.videoWidth;
+                    snapshotCanvas.height = video.videoHeight;
+                    console.log("Canvas dimensions updated onplay:", video.videoWidth + "x" + video.videoHeight);
+                }
+            };
+
+        } catch (err) {
+            console.error("Error accessing camera: ", err);
+            let message = 'Could not access camera. Check permissions. ' + err.name + ": " + err.message;
+            
+            // If a preferred device was specified and failed, try without specifying (system default)
+            if (preferredDeviceId && (err.name === "OverconstrainedError" || err.name === "NotFoundError" || err.name === "NotReadableError" || err.name === "SourceUnavailableError")) {
+                updateStatus(`Failed with preferred camera. Trying system default...`, 'warning', 2500);
+                console.warn(`Failed to access preferred camera (${preferredDeviceId}). Error: ${err.message}. Trying default.`);
+                delete constraints.video.deviceId; // Remove specific deviceId to try default
+                preferredDeviceId = null; // Reset so we don't try it again unless findPreferredCamera is called
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia(constraints); // Try again with default
+                    video.srcObject = stream; 
+                    // Re-setup onloadedmetadata for the new stream
+                    video.onloadedmetadata = async () => { /* ... same as above ... */ 
+                        await video.play();
+                        overlayCanvas.width = video.videoWidth;
+                        overlayCanvas.height = video.videoHeight;
+                        snapshotCanvas.width = video.videoWidth;
+                        snapshotCanvas.height = video.videoHeight;
+                        markAttendanceBtn.disabled = false;
+                        stopCameraBtn.style.display = 'inline-block';
+                        updateStatus('Camera started with default device.', 'info');
+                    };
+                } catch (defaultErr) {
+                    console.error("Error accessing default camera: ", defaultErr);
+                    updateStatus('Could not access any camera. Check permissions. ' + defaultErr.name + ": " + defaultErr.message, 'danger');
+                }
+            } else {
+                updateStatus(message, 'danger');
+            }
+        }
+    }
+
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            video.srcObject = null;
+            markAttendanceBtn.disabled = true;
+            stopCameraBtn.style.display = 'none';
+            if(overlayCtx) overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+            updateStatus('Camera stopped.', 'secondary'); 
+            stream = null;
+        }
+    }
+
+    markAttendanceBtn.addEventListener('click', async function () {
+        if (!stream || !video.srcObject || video.paused || video.ended || video.readyState < video.HAVE_CURRENT_DATA) {
+            updateStatus('Camera not active or ready. Please wait or restart camera.', 'warning');
+            // Optionally, try to restart camera if it seems off
+            // if (!stream) await startCamera(); 
+            return;
+        }
+
+        updateStatus('Processing...', 'info', 1500); // Shorter duration for processing message
+        markAttendanceBtn.disabled = true;
+
+        const context = snapshotCanvas.getContext('2d');
+        // Ensure canvas is sized correctly before drawing
+        if (snapshotCanvas.width !== video.videoWidth || snapshotCanvas.height !== video.videoHeight) {
+            snapshotCanvas.width = video.videoWidth;
+            snapshotCanvas.height = video.videoHeight;
+        }
+
+        // Handle mirrored video for snapshot
+        if (video.style.transform === 'scaleX(-1)') {
+            context.translate(snapshotCanvas.width, 0);
+            context.scale(-1, 1);
+            context.drawImage(video, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
+            context.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+        } else {
+            context.drawImage(video, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
+        }
+        const imageDataURL = snapshotCanvas.toDataURL('image/jpeg', 0.9); // Use JPEG with quality
+
+        try {
+            const response = await fetch("{{ url_for('mark_attendance_route') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': "{{ csrf_token() if csrf_token else '' }}" // Add CSRF token if your app uses Flask-WTF or similar
+                },
+                body: JSON.stringify({ image_data: imageDataURL }),
+            });
+            
+            if (!response.ok) { // Check for HTTP errors
+                const errorText = await response.text();
+                throw new Error(`Server error: ${response.status} ${response.statusText}. ${errorText}`);
+            }
+            const result = await response.json();
+            updateStatus(result.message, result.status); 
+
+        } catch (error) {
+            console.error('Error marking attendance:', error);
+            updateStatus('An error occurred. Please try again. ' + error.message, 'danger');
+        } finally {
+            markAttendanceBtn.disabled = false;
+        }
+    });
+
+    stopCameraBtn.addEventListener('click', stopCamera);
+
+    // --- Initialize Clock and Camera ---
+    updateISTClock(); // Initial clock display
+    clockIntervalId = setInterval(updateISTClock, 1000); // Update clock every second
+    startCamera();
+
+    // --- Handle Page Visibility ---
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") {
+            // Optional: Stop camera when tab is hidden to save resources
+            // stopCamera(); 
+            if (clockIntervalId) clearInterval(clockIntervalId); // Stop clock updates
+        } else if (document.visibilityState === "visible") {
+            // Optional: Restart camera if it was stopped
+            // if (!stream) startCamera();
+            if (!clockIntervalId) { // Restart clock if it was stopped
+                 updateISTClock(); // Update immediately
+                 clockIntervalId = setInterval(updateISTClock, 1000);
+            }
+        }
+    });
+
+    // Clean up camera and clock on page unload
+    window.addEventListener('beforeunload', () => {
+        stopCamera();
+        if (clockIntervalId) clearInterval(clockIntervalId);
+    });
+});
+</script>
+{% endblock %}

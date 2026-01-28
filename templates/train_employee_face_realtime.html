@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block head_extra %}
+<style>
+    /* videoFeedContainerTrain is styled in theme.css */
+    #videoElementTrain {
+        display: block;
+        width: 100%;
+        height: auto;
+        transform: scaleX(-1); /* Mirror mode */
+        border-radius: calc(var(--border-radius-main) - 10px);
+    }
+    #overlayCanvasTrain {
+        position: absolute;
+        top: 10px; 
+        left: 10px; 
+        width: calc(100% - 20px);
+        height: calc(100% - 20px);
+        transform: scaleX(-1); 
+        pointer-events: none;
+    }
+    .training-card { 
+        margin-top: 1.5rem;
+    }
+     .page-title-card { 
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        text-align: center;
+        padding-bottom: 0;
+    }
+    .page-title-card h2 {
+        color: var(--secondary-white);
+        font-weight: 600;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    }
+     .page-title-card p {
+        color: var(--text-color-light);
+        opacity: 0.85;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    }
+    .progress-container {
+        width: 100%; 
+        margin: 1rem auto 0.5rem; 
+        background-color: rgba(0,0,0,0.2); 
+        border-radius: var(--border-radius-small);
+        height: 24px; 
+    }
+    .progress-bar-train {
+        height: 100%;
+        width: 0%;
+        background-color: var(--primary-blue-light); 
+        border-radius: var(--border-radius-small);
+        text-align: center;
+        line-height: 24px; 
+        color: white;
+        font-weight: 500;
+        transition: width 0.4s ease-in-out;
+        box-shadow: inset 0 -2px 4px rgba(0,0,0,0.2);
+    }
+</style>
+{% endblock %}
+
+{% block body_attributes %}class="index-page-background"{% endblock %} {# Optional: if you want blurred bg here too #}
+
+
+{% block content %}
+<div class="container mt-5 pt-3">
+    <div class="row justify-content-center">
+        <div class="col-lg-7 col-md-9">
+
+            <div class="card page-title-card mb-3">
+                <div class="card-body pb-0">
+                    <h2>Live Face Training: {{ employee.name }}</h2>
+                    <p class="mb-1">Employee ID: {{ employee.employee_id }}</p>
+                    <p>Current known face samples: <strong id="currentEncodingsCount">{{ num_existing_encodings }}</strong></p>
+                </div>
+            </div>
+
+            <div id="videoFeedContainerTrain" class="mb-3">
+                <video id="videoElementTrain" autoplay playsinline muted></video>
+                <canvas id="overlayCanvasTrain"></canvas>
+            </div>
+
+            <div class="card training-card">
+                <div class="card-body text-center">
+                    <p class="opacity-75 mb-2"> {# Removed text-light #}
+                        Position face clearly. Press <strong>ENTER</strong> to capture or <strong>S</strong> to skip.
+                        Aim for <strong>~{{ MIN_SAMPLES_GOAL | default(10) }}</strong> new samples.
+                    </p>
+                    <div class="mb-3">
+                        <button id="startTrainingCamBtn" class="btn btn-info me-2">Start Camera</button>
+                        <button id="stopTrainingCamBtn" class="btn btn-secondary" style="display: none;">Stop Camera</button>
+                    </div>
+                    <div id="captureCounter" class="mb-2 fs-5">Samples this session: 0</div>
+                    <div class="progress-container">
+                        <div id="trainingProgressBar" class="progress-bar-train" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="{{ MIN_SAMPLES_GOAL | default(10) }}">0/{{ MIN_SAMPLES_GOAL | default(10) }}</div>
+                    </div>
+                    <div id="trainingStatus" class="alert mt-3" style="display: none;"></div>
+                     <div class="mt-3">
+                        <a href="{{ url_for('manage_employees') }}" class="btn btn-outline-primary btn-sm">Back to Manage Employees</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<canvas id="snapshotCanvasTrain" style="display:none;"></canvas>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const videoTrain = document.getElementById('videoElementTrain');
+    const overlayCanvasTrain = document.getElementById('overlayCanvasTrain');
+    const overlayCtxTrain = overlayCanvasTrain.getContext('2d');
+    const snapshotCanvasTrain = document.getElementById('snapshotCanvasTrain');
+    const startTrainingCamBtn = document.getElementById('startTrainingCamBtn');
+    const stopTrainingCamBtn = document.getElementById('stopTrainingCamBtn');
+    const captureCounterEl = document.getElementById('captureCounter');
+    const trainingStatusEl = document.getElementById('trainingStatus');
+    const currentEncodingsCountEl = document.getElementById('currentEncodingsCount');
+    const trainingProgressBar = document.getElementById('trainingProgressBar');
+
+    const employeeDbId = "{{ employee.id }}";
+    const MIN_SAMPLES_GOAL = parseInt(trainingProgressBar.getAttribute('aria-valuemax')) || 10;
+    let streamTrain;
+    let samplesCapturedThisSession = 0;
+    let keydownActive = false;
+    let preferredTrainingDeviceId = null; // To store the ID of the preferred (external) camera
+
+    function updateTrainingStatus(message, type = 'info') {
+        trainingStatusEl.textContent = message;
+        trainingStatusEl.className = `alert alert-${type} mt-2`;
+        trainingStatusEl.style.display = 'block';
+    }
+
+    function updateProgressBar() {
+        const percentage = Math.min((samplesCapturedThisSession / MIN_SAMPLES_GOAL) * 100, 100);
+        trainingProgressBar.style.width = percentage + '%';
+        trainingProgressBar.textContent = `${samplesCapturedThisSession}/${MIN_SAMPLES_GOAL}`;
+        trainingProgressBar.setAttribute('aria-valuenow', samplesCapturedThisSession);
+    }
+
+    async function findPreferredTrainingCamera() {
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+            if (videoDevices.length === 0) {
+                updateTrainingStatus('No video input devices found.', 'danger');
+                return null;
+            }
+
+            const internalCameraKeywords = ['front', 'face', 'integrated', 'built-in', 'internal', 'laptop'];
+            
+            let externalCameras = videoDevices.filter(device => {
+                const labelLower = device.label.toLowerCase();
+                return !internalCameraKeywords.some(keyword => labelLower.includes(keyword));
+            });
+
+            if (externalCameras.length > 0) {
+                console.log('External camera(s) found for training:', externalCameras.map(d => d.label));
+                preferredTrainingDeviceId = externalCameras[0].deviceId;
+                return preferredTrainingDeviceId;
+            } else if (videoDevices.length > 0) {
+                console.log('No distinct external camera for training, using first available:', videoDevices[0].label);
+                preferredTrainingDeviceId = videoDevices[0].deviceId;
+                return preferredTrainingDeviceId;
+            }
+            return null;
+
+        } catch (err) {
+            console.error("Error enumerating devices for training: ", err);
+            updateTrainingStatus('Error accessing camera list for training. ' + err.message, 'danger');
+            return null;
+        }
+    }
+
+
+    async function startTrainingCamera() {
+        startTrainingCamBtn.disabled = true;
+        stopTrainingCamBtn.style.display = 'none';
+        updateTrainingStatus('Initializing camera...', 'info');
+
+        if (streamTrain) {
+            streamTrain.getTracks().forEach(track => track.stop());
+            streamTrain = null;
+        }
+        
+        preferredTrainingDeviceId = await findPreferredTrainingCamera();
+
+        const constraints = {
+            video: {
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            },
+            audio: false
+        };
+
+        if (preferredTrainingDeviceId) {
+            constraints.video.deviceId = { exact: preferredTrainingDeviceId };
+            delete constraints.video.facingMode; // Remove if deviceId is exact
+        } else if (!preferredTrainingDeviceId && constraints.video.deviceId) {
+            delete constraints.video.deviceId;
+        }
+
+
+        try {
+            streamTrain = await navigator.mediaDevices.getUserMedia(constraints);
+            videoTrain.srcObject = streamTrain;
+            videoTrain.onloadedmetadata = async () => {
+                overlayCanvasTrain.width = videoTrain.videoWidth;
+                overlayCanvasTrain.height = videoTrain.videoHeight;
+                snapshotCanvasTrain.width = videoTrain.videoWidth;
+                snapshotCanvasTrain.height = videoTrain.videoHeight;
+
+                startTrainingCamBtn.style.display = 'none';
+                stopTrainingCamBtn.style.display = 'inline-block';
+                document.addEventListener('keydown', handleKeyPress);
+                keydownActive = true;
+
+                const currentTrack = streamTrain.getVideoTracks()[0];
+                const settings = currentTrack.getSettings();
+                let cameraLabel = "Unknown Camera";
+
+                if (settings.deviceId) {
+                     const devices = await navigator.mediaDevices.enumerateDevices();
+                     const actualDevice = devices.find(d => d.deviceId === settings.deviceId);
+                     cameraLabel = actualDevice ? actualDevice.label : (settings.deviceId || "Default Camera");
+                } else if (currentTrack.label) {
+                    cameraLabel = currentTrack.label;
+                }
+
+                updateTrainingStatus(`Camera started (${cameraLabel}). Press ENTER or S.`, 'info');
+                console.log("Using training camera:", cameraLabel, settings.deviceId || "N/A");
+            };
+        } catch (err) {
+            console.error("Error accessing training camera: ", err);
+            let message = 'Could not access training camera. Check permissions. ' + err.message;
+             if (preferredTrainingDeviceId && (err.name === "OverconstrainedError" || err.name === "NotFoundError" || err.name === "NotReadableError")) {
+                message = `Failed to access preferred training camera (${preferredTrainingDeviceId}). Trying default. ` + err.message;
+                console.warn(message);
+                delete constraints.video.deviceId;
+                try {
+                    streamTrain = await navigator.mediaDevices.getUserMedia(constraints);
+                    videoTrain.srcObject = streamTrain;
+                } catch (defaultErr) {
+                    updateTrainingStatus('Could not access any camera for training. Check permissions. ' + defaultErr.message, 'danger');
+                }
+            } else {
+                 updateTrainingStatus(message, 'danger');
+            }
+            startTrainingCamBtn.disabled = false; // Re-enable button if start failed
+            startTrainingCamBtn.style.display = 'inline-block'; // Show start button again
+            stopTrainingCamBtn.style.display = 'none'; // Hide stop button
+        }
+    }
+
+    function stopTrainingCamera() {
+        if (streamTrain) {
+            streamTrain.getTracks().forEach(track => track.stop());
+            videoTrain.srcObject = null;
+            startTrainingCamBtn.style.display = 'inline-block';
+            startTrainingCamBtn.disabled = false;
+            stopTrainingCamBtn.style.display = 'none';
+            document.removeEventListener('keydown', handleKeyPress);
+            keydownActive = false;
+            if(overlayCtxTrain) overlayCtxTrain.clearRect(0, 0, overlayCanvasTrain.width, overlayCanvasTrain.height);
+            updateTrainingStatus('Camera stopped.', 'secondary');
+            streamTrain = null;
+        }
+    }
+
+    async function captureFrameAndSend() {
+        if (!streamTrain || !videoTrain.srcObject || !keydownActive) return;
+
+        updateTrainingStatus('Capturing and processing frame...', 'info');
+
+        const context = snapshotCanvasTrain.getContext('2d');
+        if (videoTrain.style.transform === 'scaleX(-1)') {
+            context.translate(snapshotCanvasTrain.width, 0);
+            context.scale(-1, 1);
+            context.drawImage(videoTrain, 0, 0, snapshotCanvasTrain.width, snapshotCanvasTrain.height);
+            context.setTransform(1, 0, 0, 1, 0, 0);
+        } else {
+            context.drawImage(videoTrain, 0, 0, snapshotCanvasTrain.width, snapshotCanvasTrain.height);
+        }
+        const imageDataURL = snapshotCanvasTrain.toDataURL('image/jpeg');
+
+        try {
+            const response = await fetch(`/admin/capture_training_frame/${employeeDbId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ image_data: imageDataURL }),
+            });
+            const result = await response.json();
+
+            if (result.status === 'success') {
+                samplesCapturedThisSession++;
+                captureCounterEl.textContent = `Samples this session: ${samplesCapturedThisSession}`;
+                currentEncodingsCountEl.textContent = result.total_encodings_for_employee;
+                updateTrainingStatus(result.message, 'success');
+                updateProgressBar();
+                if (samplesCapturedThisSession >= MIN_SAMPLES_GOAL) {
+                    updateTrainingStatus(`Goal of ${MIN_SAMPLES_GOAL} samples reached! You can continue or stop.`, 'success');
+                }
+            } else {
+                updateTrainingStatus(`Error: ${result.message}`, result.status === 'warning' ? 'warning' : 'danger');
+            }
+        } catch (error) {
+            console.error('Error capturing frame:', error);
+            updateTrainingStatus('An error occurred while sending frame. ' + error, 'danger');
+        }
+    }
+
+    function handleKeyPress(event) {
+        if (!keydownActive || !streamTrain) return; 
+
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            captureFrameAndSend();
+        } else if (event.key.toLowerCase() === 's') {
+            event.preventDefault();
+            updateTrainingStatus('Frame skipped. Position and try again.', 'info');
+        }
+    }
+
+    startTrainingCamBtn.addEventListener('click', startTrainingCamera);
+    stopTrainingCamBtn.addEventListener('click', stopTrainingCamera);
+
+    updateProgressBar(); 
+});
+</script>
+{% endblock %}
