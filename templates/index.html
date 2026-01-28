@@ -3,8 +3,7 @@
 {% block head_extra %}
 <style>
     body.index-page-background {
-        /* Changed to a blue gradient background */
-        background: linear-gradient(to bottom right, #C33764 , #1D2671); /* Example blue gradient */
+        background: linear-gradient(to bottom right, #C33764 , #1D2671);
         position: relative;
         z-index: 0;
     }
@@ -17,7 +16,7 @@
         right: 0;
         bottom: 0;
         background: inherit; 
-        filter: blur(8px) brightness(0.95); /* Slightly darken the blurred background to help foreground pop */
+        filter: blur(8px) brightness(0.95);
         -webkit-filter: blur(8px) brightness(0.55);
         z-index: -1; 
     }
@@ -51,32 +50,29 @@
     .page-title-card h2 {
         color: var(--secondary-white);
         font-weight: 600;
-        text-shadow: 1px 1px 4px rgba(0,0,0,0.4); /* Enhanced shadow for title */
+        text-shadow: 1px 1px 4px rgba(0,0,0,0.4);
     }
     .page-title-card p {
         color: var(--text-color-light);
-        opacity: 0.95; /* Slightly more opaque */
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.3); /* Enhanced shadow for subtitle */
+        opacity: 0.95;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
     }
-    /* IST Clock Style */
     .page-title-card #istTimeDisplay {
         color: var(--text-color-light);
         font-size: 0.95rem;
         font-weight: 500;
         opacity: 0.9;
-        margin-top: 5px; /* Space between subtitle and clock */
+        margin-top: 5px;
         text-shadow: 1px 1px 2px rgba(0,0,0,0.25);
     }
 
-
-    /* Styles for Pop-up Alert Container */
     #popupAlertContainer {
         position: absolute; 
-        top: 150px; /* Adjusted from 50 to 50px for clarity */
-        left: 15px; /* Position to the right with some padding */
+        top: 150px;
+        left: 15px;
         z-index: 2050;
         width: auto;
-        max-width: 90%; /* Max width relative to viewport */
+        max-width: 90%;
         display: flex;
         flex-direction: column;
         align-items: flex-end; 
@@ -87,23 +83,20 @@
         min-width: 250px; 
         max-width: 350px; 
         text-align: left; 
-        margin-bottom: 10px; /* Add some space between alerts */
-        animation: fadeInSlideDown 0.5s ease-out forwards; /* Apply animation */
-        opacity: 0; /* Start transparent for animation */
-        transform: translateY(-20px); /* Start slightly above for animation */
+        margin-bottom: 10px;
+        animation: fadeInSlideDown 0.5s ease-out forwards;
+        opacity: 0;
+        transform: translateY(-20px);
     }
-    .popup-alert.fade-out { /* Class to trigger fade-out */
+    .popup-alert.fade-out {
         animation: fadeOutSlideUp 0.5s ease-in forwards;
     }
 
-
-    /* Default Glow - Brighter and more spread out */
     .popup-alert {
         box-shadow: 0 0 20px 6px rgba(220, 235, 255, 0.6), 
                     0 5px 10px rgba(0,0,0,0.2); 
     }
 
-    /* Specific Glows based on alert type - Enhanced */
     .popup-alert.alert-success {
         border-color: rgba(238, 245, 41, 0.767); 
         box-shadow: 0 0 20px 6px rgba(200, 191, 70, 0.7), 
@@ -130,7 +123,6 @@
                     0 5px 10px rgba(0,0,0,0.2);
     }
 
-
     @keyframes fadeInSlideDown {
         to {
             opacity: 1;
@@ -149,13 +141,109 @@
         }
     }
 
+    /* Auto Mode Toggle Styles */
+    .auto-mode-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 15px;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        backdrop-filter: blur(10px);
+    }
+
+    .auto-mode-label {
+        color: var(--secondary-white);
+        font-weight: 500;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    }
+
+    /* Custom Toggle Switch */
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 60px;
+        height: 34px;
+    }
+
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 34px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 26px;
+        width: 26px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+
+    input:checked + .slider {
+        background-color: #28a745;
+    }
+
+    input:checked + .slider:before {
+        transform: translateX(26px);
+    }
+
+    /* Auto mode indicator */
+    .auto-mode-indicator {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 15px;
+        background: rgba(40, 167, 69, 0.2);
+        border: 2px solid #28a745;
+        border-radius: 20px;
+        color: #28a745;
+        font-weight: 600;
+        animation: pulse 2s infinite;
+    }
+
+    .auto-mode-indicator.active {
+        display: flex;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+
+    .recognition-status {
+        text-align: center;
+        margin-top: 10px;
+        font-size: 0.9rem;
+        color: var(--text-color-light);
+        min-height: 20px;
+    }
+
 </style>
 {% endblock %}
 
 {% block body_attributes %}class="index-page-background"{% endblock %}
 
 {% block content %}
-<div id="popupAlertContainer"></div> {# Container for pop-up alerts #}
+<div id="popupAlertContainer"></div>
 
 <div class="container mt-1 pt-1"> 
     <div class="row justify-content-center">
@@ -165,21 +253,41 @@
                 <div class="card-body pb-0">
                     <h2>Mark Your Attendance</h2>
                     <p>Please look directly into the camera.</p>
-                    <!-- IST Clock Placeholder -->
                     <p id="istTimeDisplay" class="mb-0">Loading IST time...</p> 
                 </div>
             </div>
 
-            <div id="videoFeedContainer" class="mb-3" style="position: relative;"> <!-- Added position: relative for alert positioning -->
+            <div id="videoFeedContainer" class="mb-3" style="position: relative;">
                 <video id="videoElement" autoplay playsinline muted></video>
                 <canvas id="overlayCanvas"></canvas>
             </div>
 
             <div class="card controls-card">
-                <div class="card-body text-center">
-                    <button id="markAttendanceBtn" class="btn btn-primary btn-lg me-2" disabled>Mark My Attendance</button>
-                    <button id="stopCameraBtn" class="btn btn-secondary btn-lg" style="display: none;">Stop Camera</button>
-                    <!-- Removed the old statusMessage div as popups are used now -->
+                <div class="card-body">
+                    <!-- Auto Mode Toggle -->
+                    <div class="auto-mode-container">
+                        <span class="auto-mode-label">Manual Mode</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="autoModeToggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="auto-mode-label">Auto Mode</span>
+                    </div>
+
+                    <!-- Auto Mode Indicator -->
+                    <div class="auto-mode-indicator" id="autoModeIndicator">
+                        <span>🔄</span>
+                        <span>Auto Recognition Active</span>
+                    </div>
+
+                    <!-- Recognition Status -->
+                    <div class="recognition-status" id="recognitionStatus"></div>
+
+                    <!-- Manual Controls -->
+                    <div class="text-center" id="manualControls">
+                        <button id="markAttendanceBtn" class="btn btn-primary btn-lg me-2" disabled>Mark My Attendance</button>
+                        <button id="stopCameraBtn" class="btn btn-secondary btn-lg" style="display: none;">Stop Camera</button>
+                    </div>
                 </div>
             </div>
 
@@ -201,40 +309,40 @@ document.addEventListener('DOMContentLoaded', function () {
     const markAttendanceBtn = document.getElementById('markAttendanceBtn');
     const stopCameraBtn = document.getElementById('stopCameraBtn');
     const popupAlertContainer = document.getElementById('popupAlertContainer');
-    const istTimeDisplay = document.getElementById('istTimeDisplay'); // Get the clock display element
+    const istTimeDisplay = document.getElementById('istTimeDisplay');
+    const autoModeToggle = document.getElementById('autoModeToggle');
+    const autoModeIndicator = document.getElementById('autoModeIndicator');
+    const recognitionStatus = document.getElementById('recognitionStatus');
+    const manualControls = document.getElementById('manualControls');
+    
     let stream;
     let preferredDeviceId = null; 
-    let clockIntervalId = null; // To store the interval ID for the clock
+    let clockIntervalId = null;
+    let autoModeEnabled = false;
+    let autoRecognitionInterval = null;
+    let lastRecognizedEmployee = null;
+    let recognitionStartTime = null;
+    let isProcessingAttendance = false;
+    
+    const RECOGNITION_THRESHOLD_MS = 5000; // 5 seconds
+    const AUTO_CHECK_INTERVAL_MS = 500; // Check every 500ms
 
-    // --- IST Clock Function ---
     function updateISTClock() {
-        // Create a new Date object. It will be in the user's local timezone.
-        // We will format it to appear as IST.
-        // For true server-synced IST, you'd typically pass the server's current IST time
-        // and then increment it client-side, or periodically re-sync.
-        // However, the Python backend already provides `now` which is IST.
-        // This JS clock will show the client's interpretation of current time, formatted for IST.
-        // For a more accurate IST display reflecting the server's understanding,
-        // you might pass `{{ now.timestamp() }}` and initialize the JS Date with that.
-        // For simplicity here, we'll use client time and format it.
-
         const now = new Date();
         const options = {
-            timeZone: 'Asia/Kolkata', // Specify IST
+            timeZone: 'Asia/Kolkata',
             hour: '2-digit',
             minute: '2-digit',
             second: '2-digit',
-            hour12: true // Use AM/PM
+            hour12: true
         };
-        // This will format the date according to IST locale conventions
         const timeString = now.toLocaleTimeString('en-IN', options);
         if (istTimeDisplay) {
             istTimeDisplay.textContent = `Current Time: ${timeString}`;
         }
     }
 
-    // --- Pop-up Alert Function ---
-    function updateStatus(message, type = 'info', duration = 3500) { // Default duration 3.5s
+    function updateStatus(message, type = 'info', duration = 3500) {
         const alertDiv = document.createElement('div');
         const alertType = ['success', 'danger', 'warning', 'info', 'secondary', 'primary', 'light', 'dark'].includes(type) ? type : 'info';
         alertDiv.className = `alert alert-${alertType} popup-alert`; 
@@ -242,15 +350,20 @@ document.addEventListener('DOMContentLoaded', function () {
         
         popupAlertContainer.appendChild(alertDiv);
 
-        // Automatically remove the alert
         setTimeout(() => { 
-            alertDiv.classList.add('fade-out'); // Add class to trigger fade-out
+            alertDiv.classList.add('fade-out');
             setTimeout(() => {
                 if (alertDiv.parentNode === popupAlertContainer) { 
                     popupAlertContainer.removeChild(alertDiv);
                 }
-            }, 500); // Duration of fadeOutSlideUp animation
-        }, duration - 500); // Start fade-out 0.5s before total duration
+            }, 500);
+        }, duration - 500);
+    }
+
+    function updateRecognitionStatus(message) {
+        if (recognitionStatus) {
+            recognitionStatus.textContent = message;
+        }
     }
 
     async function findPreferredCamera() {
@@ -262,22 +375,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 updateStatus('No video input devices found.', 'danger');
                 return null;
             }
-            // More specific keywords for internal cameras, less likely to match external ones.
+            
             const internalCameraKeywords = ['integrated webcam', 'built-in camera', 'laptop camera', 'internal camera', 'facing front', 'usb2.0 hd uvc webcam'];
-            // Keywords for known external camera brands or types
             const externalCameraKeywords = ['logitech', 'droidcam', 'obs virtual camera', 'external', 'usb video device'];
 
             let externalCameras = videoDevices.filter(device => {
                 const labelLower = device.label.toLowerCase();
-                // Prioritize devices that explicitly mention external or known external brands
                 if (externalCameraKeywords.some(keyword => labelLower.includes(keyword))) {
                     return true;
                 }
-                // Exclude devices that seem internal if no strong external keyword match
                 return !internalCameraKeywords.some(keyword => labelLower.includes(keyword));
             });
             
-            // If no clear external, try to pick one that isn't obviously internal
             if (externalCameras.length === 0) {
                  externalCameras = videoDevices.filter(device => {
                     const labelLower = device.label.toLowerCase();
@@ -285,18 +394,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             }
 
-
             if (externalCameras.length > 0) {
-                console.log('Preferred (External/Non-Internal) camera(s) found:', externalCameras.map(d => d.label));
-                preferredDeviceId = externalCameras[0].deviceId; // Pick the first likely external
+                console.log('Preferred camera found:', externalCameras[0].label);
+                preferredDeviceId = externalCameras[0].deviceId;
                 return preferredDeviceId;
             } else if (videoDevices.length > 0) {
-                // Fallback to the first available video device if no clear external one is found
-                console.log('No distinct external camera found, using first available camera:', videoDevices[0].label);
+                console.log('Using first available camera:', videoDevices[0].label);
                 preferredDeviceId = videoDevices[0].deviceId;
                 return preferredDeviceId;
             }
-            return null; // Should not be reached if videoDevices.length > 0
+            return null;
         } catch (err) {
             console.error("Error enumerating devices: ", err);
             updateStatus('Error accessing camera list. ' + err.message, 'danger');
@@ -314,7 +421,7 @@ document.addEventListener('DOMContentLoaded', function () {
             stream = null;
         }
 
-        if (!preferredDeviceId) { // Only find preferred if not already set or if retrying
+        if (!preferredDeviceId) {
             preferredDeviceId = await findPreferredCamera();
         }
         
@@ -322,7 +429,6 @@ document.addEventListener('DOMContentLoaded', function () {
             video: {
                 width: { ideal: 640 },
                 height: { ideal: 480 },
-                // More robust: prefer higher frame rates if available
                 frameRate: { ideal: 30, min: 15 } 
             },
             audio: false
@@ -331,14 +437,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if (preferredDeviceId) {
             constraints.video.deviceId = { exact: preferredDeviceId };
         }
-        // If no preferredDeviceId, it will use system default.
 
         try {
             stream = await navigator.mediaDevices.getUserMedia(constraints);
             video.srcObject = stream;
             video.onloadedmetadata = async () => {
-                // Ensure video dimensions are set before setting canvas dimensions
-                await video.play(); // Start playing the video to ensure dimensions are final
+                await video.play();
 
                 overlayCanvas.width = video.videoWidth;
                 overlayCanvas.height = video.videoHeight;
@@ -352,7 +456,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 const settings = currentTrack.getSettings();
                 let cameraLabel = "Unknown Camera";
 
-                // Try to get a more descriptive label
                 if (settings.deviceId) {
                     const devices = await navigator.mediaDevices.enumerateDevices();
                     const actualDevice = devices.find(d => d.deviceId === settings.deviceId);
@@ -362,9 +465,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 
                 updateStatus(`Camera started (${cameraLabel}). Position your face.`, 'info');
-                console.log("Using camera:", cameraLabel, "ID:", settings.deviceId || "N/A", "Actual Res:", video.videoWidth + "x" + video.videoHeight);
+                console.log("Using camera:", cameraLabel, "ID:", settings.deviceId || "N/A");
             };
-            video.onplay = () => { // Fallback for dimensions if onloadedmetadata is tricky
+            video.onplay = () => {
                  if (overlayCanvas.width !== video.videoWidth || overlayCanvas.height !== video.videoHeight) {
                     overlayCanvas.width = video.videoWidth;
                     overlayCanvas.height = video.videoHeight;
@@ -378,17 +481,15 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error("Error accessing camera: ", err);
             let message = 'Could not access camera. Check permissions. ' + err.name + ": " + err.message;
             
-            // If a preferred device was specified and failed, try without specifying (system default)
             if (preferredDeviceId && (err.name === "OverconstrainedError" || err.name === "NotFoundError" || err.name === "NotReadableError" || err.name === "SourceUnavailableError")) {
                 updateStatus(`Failed with preferred camera. Trying system default...`, 'warning', 2500);
-                console.warn(`Failed to access preferred camera (${preferredDeviceId}). Error: ${err.message}. Trying default.`);
-                delete constraints.video.deviceId; // Remove specific deviceId to try default
-                preferredDeviceId = null; // Reset so we don't try it again unless findPreferredCamera is called
+                console.warn(`Failed to access preferred camera. Trying default.`);
+                delete constraints.video.deviceId;
+                preferredDeviceId = null;
                 try {
-                    stream = await navigator.mediaDevices.getUserMedia(constraints); // Try again with default
+                    stream = await navigator.mediaDevices.getUserMedia(constraints);
                     video.srcObject = stream; 
-                    // Re-setup onloadedmetadata for the new stream
-                    video.onloadedmetadata = async () => { /* ... same as above ... */ 
+                    video.onloadedmetadata = async () => {
                         await video.play();
                         overlayCanvas.width = video.videoWidth;
                         overlayCanvas.height = video.videoHeight;
@@ -418,86 +519,254 @@ document.addEventListener('DOMContentLoaded', function () {
             updateStatus('Camera stopped.', 'secondary'); 
             stream = null;
         }
+        stopAutoRecognition();
     }
 
-    markAttendanceBtn.addEventListener('click', async function () {
+    async function captureAndRecognize(isAutoMode = false) {
+        // This function ONLY recognizes faces, does NOT mark attendance
         if (!stream || !video.srcObject || video.paused || video.ended || video.readyState < video.HAVE_CURRENT_DATA) {
-            updateStatus('Camera not active or ready. Please wait or restart camera.', 'warning');
-            // Optionally, try to restart camera if it seems off
-            // if (!stream) await startCamera(); 
-            return;
+            if (!isAutoMode) {
+                updateStatus('Camera not active or ready. Please wait or restart camera.', 'warning');
+            }
+            return null;
         }
 
-        updateStatus('Processing...', 'info', 1500); // Shorter duration for processing message
-        markAttendanceBtn.disabled = true;
-
         const context = snapshotCanvas.getContext('2d');
-        // Ensure canvas is sized correctly before drawing
         if (snapshotCanvas.width !== video.videoWidth || snapshotCanvas.height !== video.videoHeight) {
             snapshotCanvas.width = video.videoWidth;
             snapshotCanvas.height = video.videoHeight;
         }
 
-        // Handle mirrored video for snapshot
         if (video.style.transform === 'scaleX(-1)') {
             context.translate(snapshotCanvas.width, 0);
             context.scale(-1, 1);
             context.drawImage(video, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
-            context.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+            context.setTransform(1, 0, 0, 1, 0, 0);
         } else {
             context.drawImage(video, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
         }
-        const imageDataURL = snapshotCanvas.toDataURL('image/jpeg', 0.9); // Use JPEG with quality
+        const imageDataURL = snapshotCanvas.toDataURL('image/jpeg', 0.9);
+
+        try {
+            // Send with auto_mode false to just recognize, not mark attendance
+            const response = await fetch("{{ url_for('mark_attendance_route') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    image_data: imageDataURL,
+                    auto_mode: false,  // Just recognize, don't mark yet
+                    recognize_only: true  // New flag to indicate we only want recognition
+                }),
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Server error: ${response.status} ${response.statusText}. ${errorText}`);
+            }
+            const result = await response.json();
+            return result;
+
+        } catch (error) {
+            console.error('Error during recognition:', error);
+            if (!isAutoMode) {
+                updateStatus('An error occurred. Please try again. ' + error.message, 'danger');
+            }
+            return null;
+        }
+    }
+
+    async function performAutoRecognition() {
+        if (!autoModeEnabled || isProcessingAttendance) return;
+
+        const result = await captureAndRecognize(true);
+        
+        if (result && result.status !== 'error') {
+            const currentEmployee = result.employee_id;
+            
+            if (currentEmployee) {
+                if (currentEmployee === lastRecognizedEmployee) {
+                    // Same person detected
+                    const currentTime = Date.now();
+                    const elapsedTime = currentTime - recognitionStartTime;
+                    const remainingTime = Math.ceil((RECOGNITION_THRESHOLD_MS - elapsedTime) / 1000);
+                    
+                    if (elapsedTime >= RECOGNITION_THRESHOLD_MS && !isProcessingAttendance) {
+                        // Threshold reached - mark attendance
+                        isProcessingAttendance = true;
+                        updateRecognitionStatus('Processing attendance...');
+                        
+                        // Call the attendance marking endpoint
+                        try {
+                            const attendanceResult = await captureAndMarkAttendance();
+                            if (attendanceResult) {
+                                updateStatus(attendanceResult.message, attendanceResult.status);
+                            }
+                        } catch (error) {
+                            console.error('Error marking attendance:', error);
+                        }
+                        
+                        // Reset for next recognition - longer cooldown to prevent immediate re-recognition
+                        setTimeout(() => {
+                            lastRecognizedEmployee = null;
+                            recognitionStartTime = null;
+                            isProcessingAttendance = false;
+                            updateRecognitionStatus('Ready for next person...');
+                        }, 5000); // 5 second cooldown after marking
+                    } else if (!isProcessingAttendance) {
+                        updateRecognitionStatus(`Recognizing... ${remainingTime}s remaining`);
+                    }
+                } else {
+                    // Different person detected
+                    lastRecognizedEmployee = currentEmployee;
+                    recognitionStartTime = Date.now();
+                    updateRecognitionStatus(`Face detected. Hold position for 5 seconds...`);
+                }
+            } else {
+                // No face detected
+                if (lastRecognizedEmployee && !isProcessingAttendance) {
+                    updateRecognitionStatus('Face lost. Please reposition...');
+                    lastRecognizedEmployee = null;
+                    recognitionStartTime = null;
+                }
+            }
+        } else {
+            // Error or no recognition
+            if (lastRecognizedEmployee && !isProcessingAttendance) {
+                updateRecognitionStatus('Recognition failed. Please try again...');
+                lastRecognizedEmployee = null;
+                recognitionStartTime = null;
+            }
+        }
+    }
+
+    async function captureAndMarkAttendance() {
+        // This function actually marks the attendance and triggers TTS
+        if (!stream || !video.srcObject || video.paused || video.ended || video.readyState < video.HAVE_CURRENT_DATA) {
+            return null;
+        }
+
+        const context = snapshotCanvas.getContext('2d');
+        if (snapshotCanvas.width !== video.videoWidth || snapshotCanvas.height !== video.videoHeight) {
+            snapshotCanvas.width = video.videoWidth;
+            snapshotCanvas.height = video.videoHeight;
+        }
+
+        if (video.style.transform === 'scaleX(-1)') {
+            context.translate(snapshotCanvas.width, 0);
+            context.scale(-1, 1);
+            context.drawImage(video, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
+            context.setTransform(1, 0, 0, 1, 0, 0);
+        } else {
+            context.drawImage(video, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
+        }
+        const imageDataURL = snapshotCanvas.toDataURL('image/jpeg', 0.9);
 
         try {
             const response = await fetch("{{ url_for('mark_attendance_route') }}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': "{{ csrf_token() if csrf_token else '' }}" // Add CSRF token if your app uses Flask-WTF or similar
                 },
-                body: JSON.stringify({ image_data: imageDataURL }),
+                body: JSON.stringify({ 
+                    image_data: imageDataURL,
+                    auto_mode: true  // This will trigger TTS on the server
+                }),
             });
             
-            if (!response.ok) { // Check for HTTP errors
+            if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`Server error: ${response.status} ${response.statusText}. ${errorText}`);
             }
             const result = await response.json();
-            updateStatus(result.message, result.status); 
+            return result;
 
         } catch (error) {
             console.error('Error marking attendance:', error);
-            updateStatus('An error occurred. Please try again. ' + error.message, 'danger');
-        } finally {
-            markAttendanceBtn.disabled = false;
+            return null;
         }
+    }
+
+    function startAutoRecognition() {
+        if (autoRecognitionInterval) return;
+        
+        lastRecognizedEmployee = null;
+        recognitionStartTime = null;
+        isProcessingAttendance = false;
+        
+        autoRecognitionInterval = setInterval(performAutoRecognition, AUTO_CHECK_INTERVAL_MS);
+        updateRecognitionStatus('Auto mode active. Scanning for faces...');
+    }
+
+    function stopAutoRecognition() {
+        if (autoRecognitionInterval) {
+            clearInterval(autoRecognitionInterval);
+            autoRecognitionInterval = null;
+        }
+        lastRecognizedEmployee = null;
+        recognitionStartTime = null;
+        isProcessingAttendance = false;
+        updateRecognitionStatus('');
+    }
+
+    // Auto Mode Toggle Handler
+    autoModeToggle.addEventListener('change', function() {
+        autoModeEnabled = this.checked;
+        
+        if (autoModeEnabled) {
+            autoModeIndicator.classList.add('active');
+            manualControls.style.display = 'none';
+            startAutoRecognition();
+            updateStatus('Auto mode enabled. System will automatically recognize faces.', 'info');
+        } else {
+            autoModeIndicator.classList.remove('active');
+            manualControls.style.display = 'block';
+            stopAutoRecognition();
+            updateStatus('Switched to manual mode.', 'secondary');
+        }
+    });
+
+    // Manual Attendance Button
+    markAttendanceBtn.addEventListener('click', async function () {
+        if (autoModeEnabled) return; // Prevent manual marking in auto mode
+        
+        markAttendanceBtn.disabled = true;
+        updateStatus('Processing...', 'info', 1500);
+
+        const result = await captureAndRecognize(false);
+        
+        if (result) {
+            updateStatus(result.message, result.status);
+        }
+        
+        markAttendanceBtn.disabled = false;
     });
 
     stopCameraBtn.addEventListener('click', stopCamera);
 
-    // --- Initialize Clock and Camera ---
-    updateISTClock(); // Initial clock display
-    clockIntervalId = setInterval(updateISTClock, 1000); // Update clock every second
+    // Initialize
+    updateISTClock();
+    clockIntervalId = setInterval(updateISTClock, 1000);
     startCamera();
 
-    // --- Handle Page Visibility ---
+    // Handle Page Visibility
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "hidden") {
-            // Optional: Stop camera when tab is hidden to save resources
-            // stopCamera(); 
-            if (clockIntervalId) clearInterval(clockIntervalId); // Stop clock updates
+            if (clockIntervalId) clearInterval(clockIntervalId);
+            stopAutoRecognition();
         } else if (document.visibilityState === "visible") {
-            // Optional: Restart camera if it was stopped
-            // if (!stream) startCamera();
-            if (!clockIntervalId) { // Restart clock if it was stopped
-                 updateISTClock(); // Update immediately
+            if (!clockIntervalId) {
+                 updateISTClock();
                  clockIntervalId = setInterval(updateISTClock, 1000);
+            }
+            if (autoModeEnabled) {
+                startAutoRecognition();
             }
         }
     });
 
-    // Clean up camera and clock on page unload
+    // Clean up on page unload
     window.addEventListener('beforeunload', () => {
         stopCamera();
         if (clockIntervalId) clearInterval(clockIntervalId);

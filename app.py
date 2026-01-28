@@ -3,25 +3,28 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, date, timedelta # Ensure datetime, date, AND timedelta are imported
-import cv2 # Still used for image reading/manipulation from webcam
+from datetime import datetime, date, timedelta
+import cv2
 import numpy as np
-import json # Import the json module
+import json
 import base64
 import shutil
-import io # For sending file from memory for Excel export
+import io
 
 # --- New Imports for MTCNN and InceptionResnetV1 ---
 import torch
-from torchvision import transforms # May not be explicitly used if MTCNN handles preprocessing
-from PIL import Image # For MTCNN
+from torchvision import transforms
+from PIL import Image
 from facenet_pytorch import MTCNN, InceptionResnetV1
-# import pyttsx3 # Optional: For text-to-speech
+
+# --- Import for Text-to-Speech ---
+import pyttsx3
+import threading
 
 # --- Import for Excel Export ---
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
-import openpyxl.utils # For auto-sizing columns
+import openpyxl.utils
 
 # --- Configuration ---
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -37,7 +40,6 @@ if not os.path.exists(KNOWN_FACES_DIR):
 if not os.path.exists(MODELS_DIR):
     os.makedirs(MODELS_DIR)
     print(f"INFO: Models directory created at {MODELS_DIR}.")
-
 
 # --- Device Configuration for PyTorch ---
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -58,7 +60,6 @@ login_manager.login_message_category = 'info'
 # --- New Model Placeholders & Gallery ---
 mtcnn_detector = None
 face_embedder_new = None
-# tts_engine = None
 
 employee_gallery = {}
 NEW_EMBEDDING_THRESHOLD = 0.75
@@ -68,6 +69,38 @@ EXPECTED_EMBEDDING_DIM = 512
 @app.context_processor
 def inject_utilities():
     return {'now': datetime.utcnow(), 'json': json}
+
+# --- Text-to-Speech Initialization ---
+def initialize_tts():
+    """Test TTS availability"""
+    try:
+        test_engine = pyttsx3.init()
+        test_engine.stop()
+        del test_engine
+        print("INFO: Text-to-Speech is available and working.")
+        return True
+    except Exception as e:
+        print(f"WARNING: Could not initialize TTS engine: {e}")
+        return False
+
+def speak_async(text):
+    """Speak text in a separate thread to avoid blocking"""
+    def speak_thread():
+        try:
+            # Create a new TTS engine instance for each speech request
+            # This prevents issues with engine state and threading
+            engine = pyttsx3.init()
+            engine.setProperty('rate', 150)
+            engine.setProperty('volume', 0.9)
+            engine.say(text)
+            engine.runAndWait()
+            engine.stop()
+            del engine
+        except Exception as e:
+            print(f"ERROR: TTS failed: {e}")
+    
+    thread = threading.Thread(target=speak_thread, daemon=True)
+    thread.start()
 
 # --- New Model Loading Function ---
 def load_new_face_models():
@@ -106,19 +139,18 @@ class Employee(db.Model):
     phone = db.Column(db.String(20))
     address = db.Column(db.String(200))
     dob = db.Column(db.Date)
-    designation = db.Column(db.String(100), nullable=True) # Added designation field
+    designation = db.Column(db.String(100), nullable=True)
     face_encodings = db.Column(db.Text, default='[]')
     registered_on = db.Column(db.DateTime, default=datetime.utcnow)
     attendances = db.relationship('AttendanceRecord', backref='employee_ref', lazy=True, cascade="all, delete-orphan")
 
-
 class AttendanceRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
-    timestamp_in = db.Column(db.DateTime, nullable=True) # Can be null if it's a manual OUT record without IN
+    timestamp_in = db.Column(db.DateTime, nullable=True)
     timestamp_out = db.Column(db.DateTime, nullable=True)
     date = db.Column(db.Date, default=date.today, nullable=False)
-    status = db.Column(db.String(20), default='Present') # Could be 'Clocked In', 'Clocked Out'
+    status = db.Column(db.String(20), default='Present')
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -243,6 +275,9 @@ def mark_attendance_route():
     if not data or 'image_data' not in data:
         return jsonify({'status': 'error', 'message': 'No image data received.'}), 400
 
+    auto_mode = data.get('auto_mode', False)
+    recognize_only = data.get('recognize_only', False)  # New flag
+    
     image_data_url = data['image_data']
     try:
         header, encoded = image_data_url.split(",", 1)
@@ -261,6 +296,15 @@ def mark_attendance_route():
     if employee_id_recognized:
         employee = Employee.query.filter_by(employee_id=employee_id_recognized).first()
         if employee:
+            # If recognize_only flag is set, just return the employee_id without marking attendance
+            if recognize_only:
+                return jsonify({
+                    'status': 'info',
+                    'message': f'Recognized: {employee.name}',
+                    'employee_id': employee_id_recognized
+                })
+            
+            # Otherwise, proceed with marking attendance
             today = date.today()
             now_utc = datetime.utcnow()
 
@@ -270,12 +314,14 @@ def mark_attendance_route():
 
             message = ""
             status_code = 'info'
+            speech_text = ""
 
             if latest_record and latest_record.timestamp_in and latest_record.timestamp_out is None:
                 latest_record.timestamp_out = now_utc
                 latest_record.status = 'Clocked Out'
                 db.session.commit()
                 message = f'{employee.name}, you have been clocked OUT at {now_utc.strftime("%H:%M:%S")}.'
+                speech_text = f'{employee.name} logged out'
                 status_code = 'success'
             else:
                 new_attendance = AttendanceRecord(
@@ -288,15 +334,20 @@ def mark_attendance_route():
                 db.session.add(new_attendance)
                 db.session.commit()
                 message = f'Attendance marked IN for {employee.name} ({employee.employee_id}) at {now_utc.strftime("%H:%M:%S")}. Welcome!'
+                speech_text = f'{employee.name} logged in'
                 status_code = 'success'
 
-            return jsonify({'status': status_code, 'message': message})
+            # Announce via TTS in auto mode
+            if auto_mode and speech_text:
+                speak_async(speech_text)
+
+            return jsonify({'status': status_code, 'message': message, 'employee_id': employee_id_recognized})
         else:
             return jsonify({'status': 'error', 'message': 'Recognized face, but employee not found.'})
     else:
         return jsonify({'status': 'error', 'message': 'Face not recognized or no face detected.'})
 
-# --- Admin Routes ---
+# --- Admin Routes (unchanged) ---
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if current_user.is_authenticated:
@@ -332,7 +383,6 @@ def admin_dashboard():
 
     absent_today_count = total_employees - present_today_count
 
-    # Python dictionary for Jinja direct access
     attendance_summary_today_dict = {
         'Present': present_today_count,
         'Absent': absent_today_count if absent_today_count >= 0 else 0
@@ -348,7 +398,6 @@ def admin_dashboard():
             distinct().count()
         counts_last_7_days.append(count)
 
-    # Python dictionary for Jinja direct access
     last_7_days_chart_data_dict = {
         'labels': labels_last_7_days,
         'counts': counts_last_7_days
@@ -357,10 +406,10 @@ def admin_dashboard():
     return render_template('admin_dashboard.html', title="Admin Dashboard",
                            total_employees=total_employees,
                            today_attendance_count=present_today_count,
-                           attendance_summary_today=attendance_summary_today_dict, # For Jinja
-                           last_7_days_chart_data=last_7_days_chart_data_dict,   # For Jinja
-                           attendance_summary_today_json=json.dumps(attendance_summary_today_dict), # For JS
-                           last_7_days_chart_data_json=json.dumps(last_7_days_chart_data_dict)   # For JS
+                           attendance_summary_today=attendance_summary_today_dict,
+                           last_7_days_chart_data=last_7_days_chart_data_dict,
+                           attendance_summary_today_json=json.dumps(attendance_summary_today_dict),
+                           last_7_days_chart_data_json=json.dumps(last_7_days_chart_data_dict)
                            )
 
 @app.route('/admin/add_employee', methods=['GET', 'POST'])
@@ -372,7 +421,7 @@ def add_employee():
         phone = request.form.get('phone')
         address = request.form.get('address')
         dob_str = request.form.get('dob')
-        designation = request.form.get('designation') # Get designation from form
+        designation = request.form.get('designation')
         if not all([employee_id, name]):
             flash('Employee ID and Name are required.', 'danger')
             return redirect(request.url)
@@ -388,7 +437,7 @@ def add_employee():
                 return redirect(request.url)
         new_employee = Employee(
             employee_id=employee_id, name=name, phone=phone, address=address, dob=dob_obj,
-            designation=designation, # Save designation
+            designation=designation,
             face_encodings=json.dumps([])
         )
         db.session.add(new_employee)
@@ -401,7 +450,6 @@ def add_employee():
 @login_required
 def manage_employees():
     employees = Employee.query.order_by(Employee.name).all()
-    # The 'manage_employees.html' template should be updated to display the designation
     return render_template('manage_employees.html', title="Manage Employees", employees=employees)
 
 @app.route('/admin/edit_employee/<int:emp_db_id>', methods=['GET', 'POST'])
@@ -415,7 +463,7 @@ def edit_employee(emp_db_id):
         employee.name = request.form.get('name', employee.name)
         employee.phone = request.form.get('phone', employee.phone)
         employee.address = request.form.get('address', employee.address)
-        employee.designation = request.form.get('designation', employee.designation) # Update designation
+        employee.designation = request.form.get('designation', employee.designation)
         dob_str = request.form.get('dob')
         if dob_str:
             try:
@@ -461,7 +509,6 @@ def edit_employee(emp_db_id):
         db.session.commit()
         flash(f'Employee {employee.name} updated.', 'success')
         return redirect(url_for('manage_employees'))
-    # The 'edit_employee.html' template should be updated to include an input for designation
     return render_template('edit_employee.html', title=f"Edit {employee.name}", employee=employee)
 
 @app.route('/admin/delete_employee/<int:emp_db_id>', methods=['POST'])
@@ -561,15 +608,13 @@ def view_attendance():
         selected_date_obj = date.today()
         selected_date_str = selected_date_obj.strftime('%Y-%m-%d')
 
-    # Query now includes Employee.designation
     attendance_records = db.session.query(AttendanceRecord, Employee.name, Employee.employee_id, Employee.designation).\
         join(Employee, AttendanceRecord.employee_id == Employee.id).\
         filter(AttendanceRecord.date == selected_date_obj).\
         order_by(Employee.employee_id, AttendanceRecord.timestamp_in).\
         all()
-    # The 'view_attendance.html' template should be updated to display designation if needed
     return render_template('view_attendance.html', title="View Attendance",
-                           records_with_employee_info=attendance_records, # This now contains designation
+                           records_with_employee_info=attendance_records,
                            selected_date=selected_date_str)
 
 @app.route('/admin/export_attendance', methods=['POST'])
@@ -593,7 +638,6 @@ def export_attendance():
         flash("End date cannot be before start date for export.", "danger")
         return redirect(url_for('view_attendance', attendance_date=end_date_str))
 
-    # Query now includes Employee.designation
     records_to_export = db.session.query(AttendanceRecord, Employee.name, Employee.employee_id, Employee.designation).\
         join(Employee, AttendanceRecord.employee_id == Employee.id).\
         filter(AttendanceRecord.date >= start_date_obj, AttendanceRecord.date <= end_date_obj).\
@@ -608,14 +652,12 @@ def export_attendance():
     ws = wb.active
     ws.title = "Attendance Report"
 
-    # Added "Designation" to headers
     headers = ["Date", "Employee ID", "Employee Name", "Designation", "Time In", "Time Out", "Duration (HH:MM:SS)", "Status"]
     ws.append(headers)
     for cell in ws[1]:
         cell.font = Font(bold=True)
         cell.alignment = Alignment(horizontal='center')
 
-    # Iterate through records which now include designation
     for record_obj, emp_name_str, emp_id_val, emp_designation_val in records_to_export:
         time_in_str = record_obj.timestamp_in.strftime("%H:%M:%S") if record_obj.timestamp_in else ""
         time_out_str = record_obj.timestamp_out.strftime("%H:%M:%S") if record_obj.timestamp_out else ""
@@ -630,7 +672,7 @@ def export_attendance():
             record_obj.date.strftime("%Y-%m-%d"),
             emp_id_val,
             emp_name_str,
-            emp_designation_val or "", # Add designation, use empty string if None
+            emp_designation_val or "",
             time_in_str,
             time_out_str,
             duration_str,
@@ -659,7 +701,6 @@ def export_attendance():
         download_name=f'attendance_report_{start_date_str}_to_{end_date_str}.xlsx',
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-
 
 @app.route('/admin/edit_attendance/<int:att_id>', methods=['GET', 'POST'])
 @login_required
@@ -711,9 +752,10 @@ def create_initial_admin():
 
 # --- App Initialization Block ---
 with app.app_context():
-    import openpyxl # To ensure it's checked at startup if used directly
+    import openpyxl
     db.create_all()
     create_initial_admin()
+    initialize_tts()
     models_loaded_successfully = load_new_face_models()
     if models_loaded_successfully:
         load_known_face_embeddings_from_db_to_gallery()
