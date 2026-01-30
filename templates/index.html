@@ -324,7 +324,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let recognitionStartTime = null;
     let isProcessingAttendance = false;
     
-    const RECOGNITION_THRESHOLD_MS = 5000; // 5 seconds
+    const RECOGNITION_THRESHOLD_MS = 3000; // 5 seconds
     const AUTO_CHECK_INTERVAL_MS = 500; // Check every 500ms
 
     function updateISTClock() {
@@ -613,7 +613,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             recognitionStartTime = null;
                             isProcessingAttendance = false;
                             updateRecognitionStatus('Ready for next person...');
-                        }, 5000); // 5 second cooldown after marking
+                        }, 2000); // 5 second cooldown after marking
                     } else if (!isProcessingAttendance) {
                         updateRecognitionStatus(`Recognizing... ${remainingTime}s remaining`);
                     }
@@ -621,7 +621,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Different person detected
                     lastRecognizedEmployee = currentEmployee;
                     recognitionStartTime = Date.now();
-                    updateRecognitionStatus(`Face detected. Hold position for 5 seconds...`);
+                    updateRecognitionStatus(`Face detected. Hold position for 3 seconds...`);
                 }
             } else {
                 // No face detected
@@ -734,7 +734,8 @@ document.addEventListener('DOMContentLoaded', function () {
         markAttendanceBtn.disabled = true;
         updateStatus('Processing...', 'info', 1500);
 
-        const result = await captureAndRecognize(false);
+        // For manual mode, we want to mark attendance immediately, not just recognize
+        const result = await manualMarkAttendance();
         
         if (result) {
             updateStatus(result.message, result.status);
@@ -742,6 +743,56 @@ document.addEventListener('DOMContentLoaded', function () {
         
         markAttendanceBtn.disabled = false;
     });
+
+    async function manualMarkAttendance() {
+        // This function marks attendance for manual mode (no TTS)
+        if (!stream || !video.srcObject || video.paused || video.ended || video.readyState < video.HAVE_CURRENT_DATA) {
+            updateStatus('Camera not active or ready. Please wait or restart camera.', 'warning');
+            return null;
+        }
+
+        const context = snapshotCanvas.getContext('2d');
+        if (snapshotCanvas.width !== video.videoWidth || snapshotCanvas.height !== video.videoHeight) {
+            snapshotCanvas.width = video.videoWidth;
+            snapshotCanvas.height = video.videoHeight;
+        }
+
+        if (video.style.transform === 'scaleX(-1)') {
+            context.translate(snapshotCanvas.width, 0);
+            context.scale(-1, 1);
+            context.drawImage(video, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
+            context.setTransform(1, 0, 0, 1, 0, 0);
+        } else {
+            context.drawImage(video, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
+        }
+        const imageDataURL = snapshotCanvas.toDataURL('image/jpeg', 0.9);
+
+        try {
+            const response = await fetch("{{ url_for('mark_attendance_route') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    image_data: imageDataURL,
+                    auto_mode: false,  // Manual mode, no TTS
+                    recognize_only: false  // Actually mark attendance
+                }),
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Server error: ${response.status} ${response.statusText}. ${errorText}`);
+            }
+            const result = await response.json();
+            return result;
+
+        } catch (error) {
+            console.error('Error marking attendance:', error);
+            updateStatus('An error occurred. Please try again. ' + error.message, 'danger');
+            return null;
+        }
+    }
 
     stopCameraBtn.addEventListener('click', stopCamera);
 

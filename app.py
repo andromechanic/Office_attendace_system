@@ -320,7 +320,7 @@ def mark_attendance_route():
                 latest_record.timestamp_out = now_utc
                 latest_record.status = 'Clocked Out'
                 db.session.commit()
-                message = f'{employee.name}, you have been clocked OUT at {now_utc.strftime("%H:%M:%S")}.'
+                message = f'{employee.name}, you have been clocked OUT.'
                 speech_text = f'{employee.name} logged out'
                 status_code = 'success'
             else:
@@ -333,7 +333,7 @@ def mark_attendance_route():
                 )
                 db.session.add(new_attendance)
                 db.session.commit()
-                message = f'Attendance marked IN for {employee.name} ({employee.employee_id}) at {now_utc.strftime("%H:%M:%S")}. Welcome!'
+                message = f'Attendance marked IN for {employee.name} ({employee.employee_id}). Welcome!'
                 speech_text = f'{employee.name} logged in'
                 status_code = 'success'
 
